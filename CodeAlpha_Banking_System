@@ -1,0 +1,151 @@
+#include <iostream>
+#include <vector>
+#include <string>
+
+class Transaction {
+private:
+    std::string type; // "Deposit", "Withdrawal", or "Transfer"
+    double amount;
+    std::string date;
+
+public:
+    Transaction(std::string t, double a, std::string d) : type(t), amount(a), date(d) {}
+
+    void display() const {
+        std::cout << "Type: " << type << ", Amount: " << amount << ", Date: " << date << std::endl;
+    }
+};
+
+class Account {
+private:
+    int accountNumber;
+    double balance;
+    std::vector<Transaction> transactions;
+
+public:
+    Account(int accNum, double initialBalance) : accountNumber(accNum), balance(initialBalance) {}
+
+    int getAccountNumber() const {
+        return accountNumber;
+    }
+
+    double getBalance() const {
+        return balance;
+    }
+
+    void deposit(double amount, std::string date) {
+        balance += amount;
+        transactions.push_back(Transaction("Deposit", amount, date));
+    }
+
+    void withdraw(double amount, std::string date) {
+        if (amount > balance) {
+            std::cout << "Insufficient balance!" << std::endl;
+        } else {
+            balance -= amount;
+            transactions.push_back(Transaction("Withdrawal", amount, date));
+        }
+    }
+
+    void transfer(Account &toAccount, double amount, std::string date) {
+        if (amount > balance) {
+            std::cout << "Insufficient balance for transfer!" << std::endl;
+        } else {
+            balance -= amount;
+            toAccount.deposit(amount, date);
+            transactions.push_back(Transaction("Transfer to " + std::to_string(toAccount.getAccountNumber()), amount, date));
+        }
+    }
+
+    void displayTransactions() const {
+        std::cout << "Transaction History for Account " << accountNumber << ":" << std::endl;
+        for (const auto &transaction : transactions) {
+            transaction.display();
+        }
+    }
+};
+
+class Customer {
+private:
+    std::string name;
+    std::vector<Account> accounts;
+
+public:
+    Customer(std::string n) : name(n) {}
+
+    void createAccount(int accountNumber, double initialBalance) {
+        accounts.push_back(Account(accountNumber, initialBalance));
+        std::cout << "Account created successfully!" << std::endl;
+    }
+
+    Account* getAccount(int accountNumber) {
+        for (auto &account : accounts) {
+            if (account.getAccountNumber() == accountNumber) {
+                return &account;
+            }
+        }
+        return nullptr;
+    }
+
+    void displayAccounts() const {
+        std::cout << "Accounts for Customer " << name << ":" << std::endl;
+        for (const auto &account : accounts) {
+            std::cout << "Account Number: " << account.getAccountNumber() << ", Balance: " << account.getBalance() << std::endl;
+        }
+    }
+};
+
+class BankingService {
+public:
+    static void performDeposit(Customer &customer, int accountNumber, double amount, std::string date) {
+        Account* account = customer.getAccount(accountNumber);
+        if (account) {
+            account->deposit(amount, date);
+            std::cout << "Deposit successful!" << std::endl;
+        } else {
+            std::cout << "Account not found!" << std::endl;
+        }
+    }
+
+    static void performWithdrawal(Customer &customer, int accountNumber, double amount, std::string date) {
+        Account* account = customer.getAccount(accountNumber);
+        if (account) {
+            account->withdraw(amount, date);
+            std::cout << "Withdrawal successful!" << std::endl;
+        } else {
+            std::cout << "Account not found!" << std::endl;
+        }
+    }
+
+    static void performTransfer(Customer &fromCustomer, int fromAccountNumber, Customer &toCustomer, int toAccountNumber, double amount, std::string date) {
+        Account* fromAccount = fromCustomer.getAccount(fromAccountNumber);
+        Account* toAccount = toCustomer.getAccount(toAccountNumber);
+        if (fromAccount && toAccount) {
+            fromAccount->transfer(*toAccount, amount, date);
+            std::cout << "Transfer successful!" << std::endl;
+        } else {
+            std::cout << "One or both accounts not found!" << std::endl;
+        }
+    }
+};
+
+int main() {
+    Customer customer1("John Doe");
+    customer1.createAccount(1001, 500.0);
+    customer1.createAccount(1002, 1000.0);
+
+    Customer customer2("Jane Doe");
+    customer2.createAccount(2001, 1500.0);
+
+    BankingService::performDeposit(customer1, 1001, 200.0, "2023-10-01");
+    BankingService::performWithdrawal(customer1, 1002, 300.0, "2023-10-02");
+    BankingService::performTransfer(customer1, 1001, customer2, 2001, 100.0, "2023-10-03");
+
+    customer1.displayAccounts();
+    customer2.displayAccounts();
+
+    customer1.getAccount(1001)->displayTransactions();
+    customer2.getAccount(2001)->displayTransactions();
+
+    return 0;
+}
